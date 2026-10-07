@@ -1,0 +1,16 @@
+**/node_modules
+**/.env
+**/.env.*
+!server/.env.example
+**/data
+**/dist
+.git
+output
+**/__pycache__
+**/.doctrees
+**/.venv*
+**/*.log
+.playwright-cli
+client/src
+client/public
+creator_toolchains/remotion/out

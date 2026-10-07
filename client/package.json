@@ -1,0 +1,9 @@
+{
+  "name": "@onlyfunds/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite --host 127.0.0.1 --port 5173 --strictPort", "build": "tsc -b && vite build", "typecheck": "tsc --noEmit", "preview": "vite preview --host 127.0.0.1 --port 4173 --strictPort" },
+  "dependencies": { "react": "^19.3.0", "react-dom": "^19.3.0", "lucide-react": "^0.468.0" },
+  "devDependencies": { "@types/react": "^19.2.0", "@types/react-dom": "^19.2.0", "@vitejs/plugin-react": "^5.1.4", "typescript": "^5.9.3", "vite": "^7.3.1" }
+}

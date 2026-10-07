@@ -1,0 +1,17 @@
+export type AcademicType = 'pi' | 'postdoc' | 'phd' | 'masters' | 'undergrad';
+export type SubscriptionPlan = { id: string; name: string; monthlyUsd: number; description: string };
+export type Subscription = { plan: SubscriptionPlan; studentOffer: boolean; expiresAt: string | null };
+export type User = { id: string; name: string; role: 'creator' | 'boss'; bio: string; field: string; postCount: number; followerCount: number; following: boolean; createdAt: string; academicType?: AcademicType; year?: number; exchange?: boolean; avatarUrl?: string | null; plans?: SubscriptionPlan[]; studentOffer?: boolean; studentOfferAvailable?: boolean; subscription?: Subscription | null };
+export type CreatorSettings = { academicType: AcademicType; year: number; exchange: boolean; plans: SubscriptionPlan[]; studentOffer: boolean; avatarId?: string };
+export type Fulfillment = { fulfilledAt: string; fulfilledUntil?: string };
+export type Notice = { id: string; rewardId: string; createdAt: string; recipientName: string; note: string };
+export type LedgerEntry = { id: string; kind: 'subscription' | 'reward'; title: string; description: string; emoji: string; value: string; senderId: string; senderName: string; recipientId: string; recipientName: string; createdAt: string; status: 'promised' | 'fulfilled' | 'free'; amountUsd?: number; periodNumber?: number; periodStart?: string; periodEnd?: string; subscriptionCreator?: string; subscriptionStartedAt?: string; usedAt?: string | null; useNote?: string; fulfilledAt?: string | null; fulfilledUntil?: string | null };
+export type Comment = { id: string; body: string; createdAt: string; author: Pick<User, 'id' | 'name' | 'role' | 'avatarUrl'> };
+export type Source = { label: string; url: string };
+export type Post = { id: string; author: User; title: string; body: string; kind: 'note' | 'video' | 'paper'; tags: string[]; sources: Source[]; mediaUrl: string | null; posterUrl: string | null; posterAlt?: string; posterCaption?: string; createdAt: string; likes: number; liked: boolean; saved: boolean; comments: Comment[]; rewardCount: number };
+export type Reward = { id: string; emoji: string; name: string; description: string; value: string; unit?: string; custom?: boolean };
+export type RewardInput = { emoji: string; unit: string; description: string };
+export type RewardRecord = { id: string; senderId: string; senderName: string; recipientId: string; recipientName: string; postId: string; rewardId: string; reward?: Reward; message: string; status: 'promised' | 'fulfilled'; createdAt: string; usedAt?: string | null; useNote?: string; fulfilledAt?: string | null; fulfilledUntil?: string | null };
+export type PostInput = { title: string; body: string; kind: Post['kind']; tags: string[]; sources: Source[]; mediaId?: string; posterId?: string };
+export type Token = { id: number; name: string; createdAt: string; expiresAt: number };
+export type Page = 'home' | 'explore' | 'saved' | 'rewards' | 'studio' | 'profile' | 'settings';

@@ -1,0 +1,67 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { createApp } from '../app.mjs';
+
+test('lab API: private accounts, creator publishing, interaction, rewards, token scope and durable storage', async t => {
+  const dataDir=await mkdtemp(path.join(tmpdir(),'onlyfunds-api-'));
+  const config={dataDir,secret:'test-secret-only-with-at-least-32-chars',studentInvite:'student-test-invite',bossInvite:'boss-test-invite',origins:['http://127.0.0.1:5173'],labName:'Test Lab'};
+  const service=createApp(config);const listener=service.app.listen(0,'127.0.0.1');await new Promise(resolve=>listener.once('listening',resolve));const base=`http://127.0.0.1:${listener.address().port}/api`;
+  async function request(route,method='GET',body,token,headers={}) { const response=await fetch(base+route,{method,headers:{...(token?{Authorization:`Bearer ${token}`} :{}),...(body instanceof FormData?{}:{'Content-Type':'application/json'}),...headers},body:body===undefined?undefined:body instanceof FormData?body:JSON.stringify(body)});const raw=await response.text();let json;try{json=JSON.parse(raw);}catch{json=raw;}return {status:response.status,body:json,headers:response.headers}; }
+  const register=(name,email,inviteCode,extra={})=>request('/auth/register','POST',{name,email,password:'secure-test-password',inviteCode,...extra});
+  try {
+    const health=await request('/health');assert.equal(health.body.service,'onlyfunds');assert.equal(health.body.labName,'Test Lab');
+    assert.equal((await request('/posts')).status,401);
+    assert.equal((await request('/health','GET',undefined,undefined,{Origin:'https://untrusted.example'})).status,403);
+    assert.equal((await register('No Invite','no@test.lab','invalid')).status,403);
+    const alice=await register('Alice','alice@test.lab',config.studentInvite,{role:'boss'});assert.equal(alice.status,201);assert.equal(alice.body.user.role,'creator');assert.equal(alice.body.user.password,undefined);
+    const bob=await register('Bob','bob@test.lab',config.studentInvite); const boss=await register('PI','pi@test.lab',config.bossInvite);
+    const at=alice.body.token,bt=bob.body.token,pt=boss.body.token;
+    assert.equal((await request('/auth/login','POST',{email:'alice@test.lab',password:'incorrect'})).status,401);
+    const input={title:'Reproducible research',body:'We recorded seeds. More validation is needed.',kind:'note',tags:['weekly'],sources:[{label:'Notes',url:'https://example.org/research'}]};
+    assert.equal((await request('/posts','POST',input,pt)).status,403);
+    assert.equal((await request('/posts','POST',{...input,sources:[{label:'bad',url:'javascript:alert(1)'}]},at)).status,400);
+    const created=await request('/posts','POST',input,at);assert.equal(created.status,201);const postId=created.body.id;
+    assert.equal((await request('/posts','GET',undefined,bt)).body.length,1);
+    assert.equal((await request('/posts?q=missing','GET',undefined,bt)).body.length,0);
+    await request(`/creators/${alice.body.user.id}/subscribe`,'POST',{active:true},pt);
+    assert.equal((await request('/posts?feed=following','GET',undefined,pt)).body.length,1);
+    await request(`/posts/${postId}/reactions`,'POST',{kind:'like',active:true},pt);
+    await request(`/posts/${postId}/reactions`,'POST',{kind:'like',active:true},pt);
+    assert.equal((await request(`/posts/${postId}`,'GET',undefined,at)).body.likes,1);
+    await request(`/posts/${postId}/reactions`,'POST',{kind:'save',active:true},pt);
+    assert.equal((await request('/posts?feed=saved','GET',undefined,pt)).body.length,1);
+    assert.equal((await request('/posts?feed=saved','GET',undefined,bt)).body.length,0);
+    await request(`/posts/${postId}/comments`,'POST',{body:'Please add sensitivity analysis.'},pt);
+    assert.equal((await request(`/posts/${postId}`,'GET',undefined,at)).body.comments[0].author.role,'boss');
+    assert.equal((await request('/rewards','POST',{postId,rewardId:'coffee'},bt)).status,403);
+    const reward=await request('/rewards','POST',{postId,rewardId:'coffee',message:'Great work'},pt);assert.equal(reward.status,201);assert.equal(reward.body.status,'promised');
+    assert.equal((await request('/rewards','GET',undefined,at)).body.length,1);
+    assert.equal((await request('/rewards','GET',undefined,bt)).body.length,0);
+    assert.equal((await request(`/rewards/${reward.body.id}`,'PATCH',{status:'fulfilled'},at)).status,403);
+    assert.equal((await request(`/rewards/${reward.body.id}`,'PATCH',{status:'fulfilled'},pt)).status,200);
+    const tokenResult=await request('/tokens','POST',{name:'automation'},at);assert.equal(tokenResult.status,201);const ct=tokenResult.body.token;
+    assert.equal((await request('/posts','POST',{...input,title:'Automated draft'},ct)).status,201);
+    assert.equal((await request('/me','PATCH',{name:'Hijack',bio:'',field:''},ct)).status,403);
+    assert.equal((await request('/tokens','POST',{name:'escalate'},ct)).status,403);
+    const invalid=new FormData();invalid.append('file',new Blob(['fake'],{type:'image/png'}),'fake.png');assert.equal((await request('/media','POST',invalid,at)).status,400);
+    const form=new FormData();form.append('file',new Blob([Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWo0AAAAASUVORK5CYII=','base64')],{type:'image/png'}),'pixel.png');
+    const uploaded=await request('/media','POST',form,at);assert.equal(uploaded.status,201);
+    const image=await fetch(base.replace('/api','')+uploaded.body.url);assert.equal(image.status,200);assert.equal(image.headers.get('content-type'),'image/png');
+    const range=await fetch(base.replace('/api','')+uploaded.body.url,{headers:{Range:'bytes=0-7'}});assert.equal(range.status,206);assert.equal((await range.arrayBuffer()).byteLength,8);
+    assert.equal((await request(`/media/${uploaded.body.id}`)).status,401);
+    assert.equal((await request('/posts','POST',{...input,posterId:uploaded.body.id},bt)).status,400);
+    assert.equal((await request('/posts','POST',{...input,posterId:uploaded.body.id},at)).status,201);
+    assert.equal((await request(`/posts/${postId}`,'DELETE',undefined,bt)).status,403);
+    const tokens=await request('/tokens','GET',undefined,at);await request(`/tokens/${tokens.body[0].id}`,'DELETE',undefined,at);
+    assert.equal((await request('/posts','GET',undefined,ct)).status,401);
+    await request('/auth/logout','POST',undefined,bt);assert.equal((await request('/me','GET',undefined,bt)).status,401);
+    await request(`/posts/${postId}`,'DELETE',undefined,at);assert.equal((await request(`/posts/${postId}`,'GET',undefined,at)).status,404);
+    assert.equal((await request('/rewards','GET',undefined,pt)).body[0].status,'fulfilled');
+    await new Promise(resolve=>listener.close(resolve));service.close();
+    const reopened=createApp(config); const count=reopened.db.prepare('SELECT count(*) n FROM posts').get().n;assert.equal(count,2);reopened.close();
+    t.diagnostic('Validated auth, isolation, creator scope, publishing, subscriptions, reactions, comments, rewards, signed media/ranges, ownership, revocation and restart persistence.');
+  } finally { if(listener.listening){await new Promise(resolve=>listener.close(resolve));service.close();}await rm(dataDir,{recursive:true,force:true}); }
+});

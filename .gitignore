@@ -1,0 +1,50 @@
+# Dependencies and generated bundles
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+creator_toolchains/remotion/out/
+creator_toolchains/remotion/build/
+
+# Credentials and lab data (only templates belong in Git)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+server/data/
+
+# Local work, recordings, generated originals and deployment checkouts
+output/
+tmp/
+.playwright-cli/
+playwright-report/
+test-results/
+*.log
+*.bak
+*.tmp
+
+# Docs/Python build caches
+client/public/manual/
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.doctrees/
+
+# Editor and OS files
+.DS_Store
+._*
+Thumbs.db
+.idea/
+.vscode/
+.codex/

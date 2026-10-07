@@ -1,0 +1,20 @@
+{
+  "name": "onlyfunds",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["client", "server", "creator_toolchains/remotion"],
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "demo:figures": "node scripts/generate-demo-figures.mjs",
+    "build": "npm run build --workspace @onlyfunds/client",
+    "test": "node --test server/test/*.test.mjs creator_toolchains/test/*.test.mjs scripts/test/*.test.mjs",
+    "audit:release": "node scripts/audit-release.mjs",
+    "site:prepare": "node scripts/prepare-site.mjs",
+    "check": "npm run typecheck --workspace @onlyfunds/client && npm run typecheck --workspace @onlyfunds/video && npm test && npm run build",
+    "setup": "node server/setup.mjs",
+    "video:studio": "npm run studio --workspace @onlyfunds/video",
+    "video:render": "npm run render --workspace @onlyfunds/video"
+  }
+}

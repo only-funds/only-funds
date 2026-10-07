@@ -1,0 +1,35 @@
+name: Check and package OnlyFunds
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm ci
+      - run: pip install -r docs/requirements.txt
+      - run: sphinx-build -W --keep-going -d output/doctrees -b html docs client/public/manual
+      - run: npm run audit:release
+      - run: npm run check
+      - run: npm run site:prepare
+      - run: npm run audit:release -- --dir output/site
+      - uses: actions/upload-artifact@v4
+        with:
+          name: onlyfunds-static-site
+          path: output/site/
+          include-hidden-files: true

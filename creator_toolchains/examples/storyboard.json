@@ -1,0 +1,10 @@
+{
+  "title": "Compute with light",
+  "author": "OnlyFunds demo lab",
+  "demo": true,
+  "scenes": [
+    { "title": "What if we could compute with light?", "body": "A short visual research update.\nStart with one question. Make the idea clear.", "narration": "Can an optical network represent a matrix operation? This video illustrates a concept, not an experimental result.", "duration": 10, "label": "01 / THE QUESTION" },
+    { "title": "Input x. Optical matrix W. Output Wx.", "body": "Encode a signal, transform it in an optical network,\nand measure the output. Then test the assumptions.", "narration": "An idealized linear optical network transforms an input vector. Real devices add noise, loss, and fabrication errors.", "duration": 10, "label": "02 / THE IDEA" },
+    { "title": "Next: make room for uncertainty.", "body": "Measure sensitivity to fabrication errors.\nCompare against a fair baseline. Share what fails, too.", "narration": "The next step is sensitivity analysis. A good research update makes both evidence and uncertainty visible.", "duration": 10, "label": "03 / WHAT COMES NEXT" }
+  ]
+}
